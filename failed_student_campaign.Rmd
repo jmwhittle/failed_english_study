@@ -1,0 +1,17 @@
+---
+title: "failed_student_campaign"
+author: "Jason Whittle"
+date: "6/28/2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+knitr::opts_chunk$set(warning = F)
+knitr::opts_chunk$set(message = F)
+```
+
+```{r}
+
+```
+
