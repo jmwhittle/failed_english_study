@@ -1,5 +1,5 @@
 ---
-title: "failed_student_campaign"
+title: "English Failed Student Encouragement Study"
 author: "Jason Whittle"
 date: "6/28/2018"
 output: pdf_document
@@ -12,6 +12,130 @@ knitr::opts_chunk$set(message = F)
 ```
 
 ```{r}
-
+library(tidyverse); theme_set(theme_minimal())
+library(readxl)
 ```
 
+```{r}
+call_data <- read_xlsx("engl_1010_calling_campaign.xlsx")
+call_data$ID <- call_data$`Student ID`
+treat_cont_data <- read_xlsx("treat_controll_engl_1010.xlsx")
+```
+
+
+```{r}
+# 617 failers; 314 treatment: 303 control
+data <- treat_cont_data %>% 
+  left_join(call_data, by = "ID") %>% 
+  filter(FAIL_IND == "Y") %>%
+  select(-`CELL PHONE`, -`HOME PHONE`, -Home, -Mobile, -CallTime, -FirstName, -LastName,
+         -`Final Grade Date`, -`Student ID`, -CallDate, -`Final Grade`)
+```
+
+```{r}
+# data %>% select(PERSON_UID, ID) %>% write_csv("calling_data_grade_201820.csv")
+```
+
+```{r}
+enrolled_data <- read.csv("engl_fails.csv")
+enrolled_data <- data %>% left_join(enrolled_data, by = c('ID' = 'BANNER_ID'))
+enrolled_data$ResultCode[is.na(enrolled_data$ResultCode) == T] <- "ctrl"
+enrolled_data$ENROLLED_IND <- enrolled_data$RETURNED_NEXT_TERM_IND
+
+# basic bitch break down of results
+basic_table <- enrolled_data %>% select(GROUP, ENROLLED_IND) %>%
+  group_by(GROUP, ENROLLED_IND) %>%
+  tally() %>%
+  knitr::kable(col.names = c("Group", "Enrolled Spring", "#"), caption = "Table 1: Basic results.")
+
+# detailed break down of resutls
+detailed_table <- enrolled_data %>% select(GROUP, ENROLLED_IND, ResultCode) %>%
+  group_by(GROUP, ResultCode, ENROLLED_IND) %>%  
+  tally() %>% 
+  knitr::kable(col.names = c("Group", "Contact Result", "Enrolled Spring", "#"), caption = "Table 2: Results by contact type.")
+```
+# Summary
+
+This study originated from a previous study on students who fail multiple attempts of the same course. In the previous study it was found that while there are many students who fail courses multiple times, roughly two thirds of students who failed a course in that study never reattempted the failed course. It was unknown if these students were possibly 'switching' majors or finding some other way around having to retake a course they performed poorly in the first time. However with English 1010 there are no work arounds. Student who tested into Engl 1010 have to pass this class to complete any degree program at SLCC or other accredited college level program. Because of this restriction on the Engl 1010 requirement the course was selected for a nudge experiment. The purpose of this experiment was to notify possibly discouraged students that failing Engl 1010 is common, SLCC has many resources to help student have success in Engl 1010 as well as their other courses and that we noticed/care that they struggled in a course. 
+
+It was hoped that a relatively simple (from a logistics perspective) nudge and reminder to the students that SLCC cares about their success would lead to reduced enrollment attrition in this vulnerable group. Letting students know they are not an outlier and important was thought might be encouraging enough for students to want to reengage. 
+
+### Simple results of the study
+
+* The students in the treatment group enrolled in Spring 2018 classes 7% less than the student in the control group. 45.2% versus 52%.
+* Even when focusing on only students who were either talked to directly (answered the phone) or had a message left on their phone only 45.6% of them reenrolled. 
+* Calling students with an encouraging message in the manner done in this study was ineffective and could have possibly led to to lower student Spring 2018 enrollment for the treatment group. 
+
+# Method
+
+Students who failed to pass English 1010 in the Fall of 2017 were randomly split into two groups based on if the the last digit of their S# was even or odd.\footnote{Students who withdrew from English 1010 in Fall 2017 were also included but read a different script.} The total number of students included in this experiment was 617 with 303 in the treatment group and 314 in the control group. Encouraging phone calls were placed over the Fall to Spring semester break with the hopes that this would bolster retention in this vulnerable group. Tyler Hall's calling center placed the calls, copies of the Calling scripts are below. 
+
+## Calling Script for Withdrawl students
+
+### In person:
+
+Hi, is ______ available? This is ______ with Salt Lake Community College. We're reaching out to see if we can help you succeed in English 1010 at SLCC. I see that you withdrew from it this semester, can I ask if you're planning to take any classes next Semester?
+
+	If Yes, continue to next question. If No, skip next question and continue with the text below it.
+
+And are you going to take English 1010 again?
+
+Both our Writing and Academic Literacy Centers are available to help you with your reading and writing assignments. And our academic advisers can also help, would you be interested in having an advisor reach out to you after the break?
+
+Get contact information. (Phone number and email? Or do we already have contact info?)
+
+Thanks for your time and have a great day.
+
+
+
+### Voicemail:
+
+Hello, this message is for ______. This is ____________ with Salt Lake Community College and we're reaching out to see if we can help you succeed in English 1010 at SLCC.
+
+If you are planning to take English 1010 in the Spring, our Writing and Academic Literacy Centers are available to help you with your reading and writing assignments. You can also make an appointment on our website to meet with an Academic Advisor who can also help you with English 1010 and your other classes. Have a great holiday and we hope to see you next semester at SLCC!
+
+
+## Calling Script for Failed student scripts
+
+### In person:
+
+Hi, is ______ available? This is ______ with Salt Lake Community College. We're reaching out to see if we can help you succeed in English 1010 at SLCC. It's a challenging class and many students struggle with it, so you're not alone.
+
+Can I ask if you're planning to take classes next Semester?
+
+	If Yes, continue to next question. If No, skip next question and continue with the text below it.
+
+And are you going to take English 1010 again?
+
+Our Writing and Academic Literacy Centers are available to help you with your reading and writing assignments. And our academic advisors can also help, would you be interested in having an advisor reach out to you after the break?
+
+Get contact information. (Phone number and email? Or do we already have contact info?)
+
+Thanks for your time and have a great day.
+
+
+
+### Voicemail:
+
+Hello, this message is for ______. This is ____________ with Salt Lake Community College and we're reaching out to see if we can help you succeed in English 1010 at SLCC. It's a challenging class and many students struggle with it, so you're not alone.
+
+If you are planning to retake English 1010 in the Spring, our Writing and Academic Literacy Centers are available to help you with your reading and writing assignments. You can also make an appointment on our website to meet with an Academic Advisor who can help you with English 1010 and your other classes. Have a great holiday and we hope to see you next semester at SLCC!
+
+
+# Results
+
+Below are two tables that break down the results. Table 1 displays results in a basic manner, table 2 breaks down table 1 into method of contact/success of contact for the treatment group. 
+
+```{r}
+basic_table
+```
+
+
+```{r}
+detailed_table
+```
+
+
+# Lessons
+
+This method of encouraging students to persevere through a hard class seems to be ineffective and possibly leads to further discouragement. It might be that reaching out to students within 1-2 weeks of finding out that they failed might be too soon for student to be receptive to trying again. It is also possible that reaching out to students might have made them feel further shame and failure (might be better if no one notices when you make mistakes so you don't have to feel the embarrassment).  
