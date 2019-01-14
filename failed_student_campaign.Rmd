@@ -2,7 +2,15 @@
 title: "English Failed Student Encouragement Study"
 author: "Jason Whittle"
 date: "6/28/2018"
-output: pdf_document
+header-includes:
+    - \usepackage{fancyhdr}
+    - \pagestyle{fancy}
+    - \rhead{\includegraphics[width=2cm,height=2cm]{logo.png}}
+    - \chead{Jason Whittle}
+    - \lhead{English Failed Student Encouragement Stud}
+output:
+  pdf_document:
+    fig_caption: true
 ---
 
 ```{r setup, include=FALSE}
@@ -16,7 +24,7 @@ library(tidyverse); theme_set(theme_minimal())
 library(readxl)
 ```
 
-```{r}
+```{r, cache=T}
 call_data <- read_xlsx("engl_1010_calling_campaign.xlsx")
 call_data$ID <- call_data$`Student ID`
 treat_cont_data <- read_xlsx("treat_controll_engl_1010.xlsx")
@@ -36,7 +44,7 @@ data <- treat_cont_data %>%
 # data %>% select(PERSON_UID, ID) %>% write_csv("calling_data_grade_201820.csv")
 ```
 
-```{r}
+```{r, cache=T}
 enrolled_data <- read.csv("engl_fails.csv")
 enrolled_data <- data %>% left_join(enrolled_data, by = c('ID' = 'BANNER_ID'))
 enrolled_data$ResultCode[is.na(enrolled_data$ResultCode) == T] <- "ctrl"
@@ -63,7 +71,7 @@ It was hoped that a relatively simple (from a logistics perspective) nudge and r
 ### Simple results of the study
 
 * The students in the treatment group enrolled in Spring 2018 classes 7% less than the student in the control group. 45.2% versus 52%.
-* Even when focusing on only students who were either talked to directly (answered the phone) or had a message left on their phone only 45.6% of them reenrolled. 
+* Even when focusing on only students who were either talked to directly (answered the phone) or had a message left on their phone only 45.6% of them re-enrolled. 
 * Calling students with an encouraging message in the manner done in this study was ineffective and could have possibly led to to lower student Spring 2018 enrollment for the treatment group. 
 
 # Method
@@ -139,3 +147,130 @@ detailed_table
 # Lessons
 
 This method of encouraging students to persevere through a hard class seems to be ineffective and possibly leads to further discouragement. It might be that reaching out to students within 1-2 weeks of finding out that they failed might be too soon for student to be receptive to trying again. It is also possible that reaching out to students might have made them feel further shame and failure (might be better if no one notices when you make mistakes so you don't have to feel the embarrassment).  
+
+# Double checking the randomization
+
+```{r}
+enrolled_data %>%
+  ggplot() + 
+  geom_histogram(aes(x=CURRENT_AGE, fill = GROUP), position = "dodge") + 
+  scale_fill_manual(values = c("#ffcd00", "#00abe1"))
+```
+
+```{r}
+enrolled_data %>%
+  ggplot() +
+  geom_histogram(aes(x=TOTAL_TERMS, fill = GROUP), position = "dodge") + 
+  scale_fill_manual(values = c("#ffcd00", "#00abe1"))
+
+```
+
+```{r}
+enrolled_data %>%
+  ggplot() +
+  geom_histogram(aes(x=PRIOR_UG_GPA, fill = GROUP), position = "dodge") + 
+  scale_fill_manual(values = c("#ffcd00", "#00abe1"))
+```
+
+```{r}
+enrolled_data %>%
+  ggplot() +
+  geom_bar(aes(x=FINAL_GRADE, fill = GROUP), position = "dodge") + 
+  scale_fill_manual(values = c("#ffcd00", "#00abe1"))
+```
+
+```{r}
+enrolled_data %>%
+  ggplot() +
+  geom_bar(aes(x=GENDER_DESC, fill = GROUP), position = "dodge") + 
+  scale_fill_manual(values = c("#ffcd00", "#00abe1"))
+```
+
+```{r}
+enrolled_data %>%
+  ggplot() +
+  geom_bar(aes(x=PRIMARY_ETHNICITY_DESC, fill = GROUP), position = "dodge") + 
+  scale_fill_manual(values = c("#ffcd00", "#00abe1")) + 
+  coord_flip()
+```
+
+# Statistical modeling
+
+Using a logistic regression to control for the unlikely but possible confounding variables of Ethnicity, Age, Gender, Prior undergraduate GPA, and Final Grade in Engl 1010 the regression below show that calling students had no significant effect on re-enrollment at SLCC in Spring 2018.\footnote{Unlikely because S\#'s are not systematically assigned to students with a higher likelihood of being more resilient in the face of academic adversity. Using even or odd values of the last digit of an S\# is a random assignment for questions of this nature.} Even though the estimated coefficient value for "Called" is negative the standard error is so large that no meaningful implications can be taken from this regression. What is clear from this study is that calling student over winter break immediately following a failed Engl 1010 class had no impact on their retention decisions there is no significant evidence that calling students led to lower re-enrollment.  
+
+```{r, include=F, cache = TRUE}
+# logit: y=returned. treatment/control
+
+enrolled_data$enr <- ifelse(enrolled_data$ENROLLED_IND == "Y", 1, 0)
+enrolled_data$grp <- ifelse(enrolled_data$GROUP == "Treatment", 1, 0)
+enrolled_data$eth <- as.factor(enrolled_data$PRIMARY_ETHNICITY_DESC)
+enrolled_data$eth[is.na(enrolled_data$eth) == T] <- "NA"
+levels(enrolled_data$eth) <- c("Caucasian", "Native American", "More Than One Race", "Pacific Islander", "African American", "Hispanic/Latino/Latina Asian", "NA", "Non-Resident Alien")
+
+enrolled_data$final_g <- as.factor(enrolled_data$FINAL_GRADE)
+levels(enrolled_data$final_g) <- c("E", "C-", "D", "D-", "D+", "I", "W")
+
+enrolled_data$male <- ifelse(enrolled_data$GENDER_DESC == "Male", 1, 0)
+
+calling_logit <- glm(enr ~ grp + eth + male + scale(CURRENT_AGE) + final_g + scale(PRIOR_UG_GPA), data = enrolled_data, family = "binomial")
+library(stargazer)
+stargazer(calling_logit, no.space = T)
+```
+
+
+\begin{table}[!htbp] \centering 
+  \caption{} 
+  \label{} 
+\begin{tabular}{@{\extracolsep{5pt}}lc} 
+\\[-1.8ex]\hline 
+\hline \\[-1.8ex] 
+ & \multicolumn{1}{c}{\textit{Dependent variable:}} \\ 
+\cline{2-2} 
+\\[-1.8ex] & Enrolled Spring 2018 at SLCC \\ 
+\hline \\[-1.8ex] 
+ Called Group & $-$0.114 \\ 
+  & (0.239) \\ 
+  Native American & $-$0.257 \\ 
+  & (0.895) \\ 
+  More Than One Race & $-$0.990 \\ 
+  & (0.655) \\ 
+  Pacific Islander & $-$0.626 \\ 
+  & (0.672) \\ 
+  African American & $-$1.010 \\ 
+  & (0.990) \\ 
+  Hispanic/Latino/Latina Asian & $-$0.214 \\ 
+  & (1.405) \\ 
+  Race/Ethnicity: NA & $-$0.404 \\ 
+  & (1.173) \\ 
+  Non-Resident Alien & $-$2.229$^{*}$ \\ 
+  & (1.284) \\ 
+  Male & $-$0.366 \\ 
+  & (0.245) \\ 
+  scale(Current Age) & 0.078 \\ 
+  & (0.107) \\ 
+  Final Grade: C- & $-$1.229 \\ 
+  & (0.910) \\ 
+  Final Grade: D & $-$1.431 \\ 
+  & (1.007) \\ 
+  Final Grade: D- & $-$0.843 \\ 
+  & (1.025) \\ 
+  Final Grade: D+ & $-$1.578$^{*}$ \\ 
+  & (0.808) \\ 
+  Final Grade: I & $-$2.166 \\ 
+  & (1.446) \\ 
+  Final Grade: W & $-$1.842$^{**}$ \\ 
+  & (0.840) \\ 
+  scale(Prior GPA) & 0.314$^{**}$ \\ 
+  & (0.127) \\ 
+  Constant & 2.488$^{**}$ \\ 
+  & (1.024) \\ 
+ \hline \\[-1.8ex] 
+Observations & 311 \\ 
+Log Likelihood & $-$202.085 \\ 
+Akaike Inf. Crit. & 440.170 \\ 
+\hline 
+\hline \\[-1.8ex] 
+\textit{Note:}  & \multicolumn{1}{r}{$^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01} \\ 
+\end{tabular} 
+\end{table} 
+  
